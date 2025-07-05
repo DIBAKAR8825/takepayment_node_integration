@@ -7,9 +7,8 @@ This project is a Node.js backend implementation for integrating the [Takepaymen
 
 ---
 
-## 📁 Folder Structure
+## Folder Structure
 
-```
 
 takepayments-node-integration/
 ├── src/
@@ -28,8 +27,6 @@ takepayments-node-integration/
 ├── tsconfig.json               # TypeScript config
 ├── package.json
 └── README.md
-
-````
 
 ---
 
