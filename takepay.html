@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment Form</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container mt-5">
+    <h2 class="mb-4">Payment Form</h2>
+    <form method="post" class="p-4 border rounded" action="https://gw1.tponlinepayments.com/paymentform/">
+        <div class="mb-3">
+            <label class="form-label">merchantID</label>
+            <input type="text" class="form-control" name="merchantID" value="">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">action</label>
+            <input type="text" class="form-control" name="action" value="SALE">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">type</label>
+            <input type="text" class="form-control" name="type" value="1">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">countryCode</label>
+            <input type="text" class="form-control" name="countryCode" value="826">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">currencyCode</label>
+            <input type="text" class="form-control" name="currencyCode" value="826">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">amount</label>
+            <input type="text" class="form-control" name="amount" value="100">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">customerEmail</label>
+            <input type="text" class="form-control" name="customerEmail" value="dibakar_chakraborty@outlook.com">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">customerAddress</label>
+            <input type="text" class="form-control" name="customerAddress" value="Newtown, Anycounty, AN1 1AA">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">customerPostCode</label>
+            <input type="text" class="form-control" name="customerPostCode" value="TE15 5ST">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">customerPhone</label>
+            <input type="text" class="form-control" name="customerPhone" value="+44 1234567111">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">orderRef</label>
+            <input type="text" class="form-control" name="orderRef" value="Order ID- #675450">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">transactionUnique</label>
+            <input type="text" class="form-control" name="transactionUnique" value="45678912345621">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">formResponsive</label>
+            <input type="text" class="form-control" name="formResponsive" value="Y">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">redirectURL</label>
+            <input type="text" class="form-control" name="redirectURL" value="http://localhost:8999/public/redirect_handler.php">
+        </div>
+        <!-- Signature must be generated server-side -->
+        <input type="hidden" name="signature" value="0f7ec1028939daea9f227a95fe21b5198d0dfeb4469d9b250d0af6acf89a1300f08d3fc3767aa5fbd7a6d3df5af28dac9a6d90884f0aa0fa5425ca46126888d6|action,amount,countryCode,currencyCode,customerAddress,customerEmail,customerPhone,customerPostCode,merchantID,orderRef,transactionUnique,type">
+
+        <button type="submit" class="btn btn-primary w-100">Pay Now</button>
+    </form>
+</div>
+</body>
+</html>

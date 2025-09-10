@@ -1,22 +1,33 @@
 {
-  "name": "takepayments-node-integration",
+  "name": "takepayment_node_integration",
   "version": "1.0.0",
-  "description": "Node.js + TypeScript integration with Takepayments Hosted Gateway",
-  "main": "dist/server.js",
+  "main": "index.js",
   "scripts": {
     "build": "tsc",
-    "dev": "ts-node-dev src/server.ts",
-    "start": "node dist/server.js"
+    "start": "node dist/index.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts"
+
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DIBAKAR8825/takepayment_node_integration.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/DIBAKAR8825/takepayment_node_integration/issues"
+  },
+  "homepage": "https://github.com/DIBAKAR8825/takepayment_node_integration#readme",
+  "description": "",
   "dependencies": {
-    "dotenv": "^16.3.1",
-    "express": "^4.21.2"
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0"
   },
   "devDependencies": {
-    "@types/express": "^4.17.23",
-    "@types/node": "^20.4.2",
-    "ts-node": "^10.9.1",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.3.1",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.4.2"
+    "typescript": "^5.9.2"
   }
 }
