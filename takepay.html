@@ -12,7 +12,7 @@
     <form method="post" class="p-4 border rounded" action="https://gw1.tponlinepayments.com/paymentform/">
         <div class="mb-3">
             <label class="form-label">merchantID</label>
-            <input type="text" class="form-control" name="merchantID" value="">
+            <input type="text" class="form-control" name="merchantID" value="119837">
         </div>
         <div class="mb-3">
             <label class="form-label">action</label>
@@ -52,11 +52,11 @@
         </div>
         <div class="mb-3">
             <label class="form-label">orderRef</label>
-            <input type="text" class="form-control" name="orderRef" value="Order ID- #675450">
+            <input type="text" class="form-control" name="orderRef" value="Order-1757526056972">
         </div>
         <div class="mb-3">
             <label class="form-label">transactionUnique</label>
-            <input type="text" class="form-control" name="transactionUnique" value="45678912345621">
+            <input type="text" class="form-control" name="transactionUnique" value="1757526056972">
         </div>
         <div class="mb-3">
             <label class="form-label">formResponsive</label>
@@ -64,10 +64,14 @@
         </div>
         <div class="mb-3">
             <label class="form-label">redirectURL</label>
-            <input type="text" class="form-control" name="redirectURL" value="http://localhost:8999/public/redirect_handler.php">
+            <input type="text" class="form-control" name="redirectURL" value="http://localhost:3000/api/payment/redirect">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">callbackURL</label>
+            <input type="text" class="form-control" name="callbackURL" value="http://localhost:3000/payment/callback">
         </div>
         <!-- Signature must be generated server-side -->
-        <input type="hidden" name="signature" value="0f7ec1028939daea9f227a95fe21b5198d0dfeb4469d9b250d0af6acf89a1300f08d3fc3767aa5fbd7a6d3df5af28dac9a6d90884f0aa0fa5425ca46126888d6|action,amount,countryCode,currencyCode,customerAddress,customerEmail,customerPhone,customerPostCode,merchantID,orderRef,transactionUnique,type">
+        <input type="hidden" name="signature" value="69590e64911f36e33d1c6748305a4d8ae187ce1af71c0d2de5e067fa486e5958c6391069bc2be61c767a2c2dd7ff6da8808c771610f4a401fd38b60430428a60|action,amount,callbackURL,countryCode,currencyCode,customerAddress,customerEmail,customerPhone,customerPostCode,merchantID,orderRef,redirectURL,transactionUnique,type">
 
         <button type="submit" class="btn btn-primary w-100">Pay Now</button>
     </form>
