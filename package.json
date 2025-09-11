@@ -1,33 +1,14 @@
 {
-  "name": "takepayment_node_integration",
+  "name": "takepayments-rest-api",
   "version": "1.0.0",
-  "main": "index.js",
+  "type": "module",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts"
-
+    "dev": "node server.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/DIBAKAR8825/takepayment_node_integration.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/DIBAKAR8825/takepayment_node_integration/issues"
-  },
-  "homepage": "https://github.com/DIBAKAR8825/takepayment_node_integration#readme",
-  "description": "",
   "dependencies": {
-    "dotenv": "^17.2.2",
-    "express": "^5.1.0"
-  },
-  "devDependencies": {
-    "@types/express": "^5.0.3",
-    "@types/node": "^24.3.1",
-    "ts-node-dev": "^2.0.0",
-    "typescript": "^5.9.2"
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "morgan": "^1.10.0",
+    "qs": "^6.13.0"
   }
 }
