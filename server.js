@@ -1,11 +1,15 @@
+// server.js
+import fs from "fs";
+const accessLogStream = fs.createWriteStream("./access.log", { flags: "a" });
 import "dotenv/config";
 import express from "express";
 import morgan from "morgan";
 import crypto from "crypto";
 import qs from "qs";
+import { insertPayment, upsertCallback, listCallbacks } from "./db.js";
 
 const app = express();
-app.use(morgan("tiny"));
+app.use(morgan("combined", { stream: accessLogStream }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -17,35 +21,71 @@ const {
   TP_CALLBACK_URL
 } = process.env;
 
-// In-memory store for callbacks (for demo/inspection)
-const callbacks = [];
-
-// Helpers
-function rfc1738EncodeSorted(data) {
-  const filtered = Object.fromEntries(
-    Object.entries(data).filter(([k, v]) => k !== "signature" && v !== undefined && v !== null)
+/* -------------------------- Signature helpers ----------------------------- */
+// RFC-1738 encode + sort + CR/LF normalization
+function encodeForSignature(obj, fieldNames = null) {
+  // choose which fields to sign (if provided), else use all except 'signature'
+  const entries = Object.entries(obj).filter(
+    ([k, v]) => k !== "signature" && v !== undefined && v !== null
   );
-  const sorted = Object.keys(filtered).sort().reduce((acc, k) => {
-    acc[k] = filtered[k];
-    return acc;
-  }, {});
+
+  const subset = fieldNames
+    ? entries.filter(([k]) => fieldNames.includes(k))
+    : entries;
+
+  // sort by field name (ASCII)
+  const sorted = subset
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .reduce((acc, [k, v]) => {
+      acc[k] = v;
+      return acc;
+    }, {});
+
   let encoded = qs.stringify(sorted, { encode: true, format: "RFC1738", arrayFormat: "indices" });
-  // Normalize CR/LF variants to a single LF (%0A)
+
+  // normalize CR/LF variants to a single LF (%0A)
   encoded = encoded
     .replace(/%0D%0A/gi, "%0A")
     .replace(/%0A%0D/gi, "%0A")
     .replace(/%0D/gi, "%0A");
+
   return { encoded, signedFieldNames: Object.keys(sorted) };
 }
 
-function generateSignature(payload) {
-  const { encoded, signedFieldNames } = rfc1738EncodeSorted(payload);
-  const hex = crypto.createHash("sha512").update(encoded + TP_SIGNATURE_KEY, "utf8").digest("hex");
-  // Append the comma-separated list of fields as requested
+function makeSignatureHex(obj, fieldNames = null) {
+  const { encoded } = encodeForSignature(obj, fieldNames);
+  return crypto.createHash("sha512").update(encoded + TP_SIGNATURE_KEY, "utf8").digest("hex");
+}
+
+// for our “create” API: attach list after a pipe (helps debugging)
+function makeSignatureWithList(obj) {
+  const { signedFieldNames } = encodeForSignature(obj, null);
+  const hex = makeSignatureHex(obj, null);
   return `${hex}|${signedFieldNames.join(",")}`;
 }
 
-// === API: Create payment payload ===
+// verify callback signature:
+// - supports "hex|f1,f2,...,fn" (we'll use that list), OR
+// - plain "hex" (we'll sign all fields except 'signature')
+function verifySignatureFromIncoming(obj) {
+  const sig = obj.signature;
+  if (!sig || typeof sig !== "string") return false;
+
+  const [hexProvided, list] = sig.split("|");
+  const fields = list ? list.split(",").map(s => s.trim()).filter(Boolean) : null;
+
+  try {
+    const hexExpected = makeSignatureHex(obj, fields);
+    // timing-safe compare
+    return crypto.timingSafeEqual(Buffer.from(hexProvided, "hex"), Buffer.from(hexExpected, "hex"));
+  } catch {
+    return false;
+  }
+}
+
+/* ---------------------------- REST endpoints ------------------------------ */
+
+// Create payment payload
 // Request body:
 // {
 //   "amount": 100,
@@ -54,7 +94,7 @@ function generateSignature(payload) {
 //   "customerPostCode": "...",
 //   "customerPhone": "+44 ..."
 // }
-app.post("/api/payment", (req, res) => {
+app.post("/api/payment", async (req, res) => {
   const {
     amount,
     customerEmail,
@@ -63,7 +103,6 @@ app.post("/api/payment", (req, res) => {
     customerPhone
   } = req.body || {};
 
-  // Basic input validation
   if (
     typeof amount !== "number" ||
     !customerEmail ||
@@ -73,16 +112,15 @@ app.post("/api/payment", (req, res) => {
   ) {
     return res.status(400).json({
       status: "error",
-      message: "Invalid request. Required: amount (number), customerEmail, customerAddress, customerPostCode, customerPhone."
+      message:
+        "Invalid request. Required: amount (number), customerEmail, customerAddress, customerPostCode, customerPhone."
     });
   }
 
-  // Generate order/id fields
   const ts = Date.now();
   const orderRef = `Order-${ts}`;
   const transactionUnique = String(ts);
 
-  // Build the gateway payload
   const payload = {
     merchantID: TP_MERCHANT_ID,
     action: "SALE",
@@ -100,10 +138,21 @@ app.post("/api/payment", (req, res) => {
     callbackURL: TP_CALLBACK_URL
   };
 
-  // Sign it
-  const signature = generateSignature(payload);
+  const signature = makeSignatureWithList(payload);
 
-  // Return JSON exactly in your requested shape
+  // persist the “intent” we generated
+  await insertPayment({
+    orderRef,
+    transactionUnique,
+    amount,
+    customerEmail,
+    customerAddress,
+    customerPostCode,
+    customerPhone,
+    payload_json: JSON.stringify({ ...payload, signature }),
+    created_at: new Date().toISOString()
+  });
+
   return res.json({
     status: "success",
     payload: {
@@ -113,7 +162,7 @@ app.post("/api/payment", (req, res) => {
   });
 });
 
-// === Optional: simple redirect landing (browser) ===
+// Browser redirect (optional, just for visibility)
 app.all("/api/payment/redirect", (req, res) => {
   const fields = req.method === "POST" ? req.body : req.query;
   res.status(200).send(`<!doctype html>
@@ -125,21 +174,50 @@ app.all("/api/payment/redirect", (req, res) => {
 </body></html>`);
 });
 
-// === Callback receiver (server-to-server) ===
-app.post("/payment/callback", (req, res) => {
-  // Capture raw body fields
-  const incoming = { ...req.body, _receivedAt: new Date().toISOString() };
-  callbacks.unshift(incoming);
-  // Acknowledge quickly
+// Server-to-server callback: verify + persist (IDEMPOTENT)
+app.post("/payment/callback", async (req, res) => {
+  const body = req.body || {};
+
+  // Log incoming headers and body for debugging
+  console.log("[CALLBACK] headers=", req.headers); 
+  console.log("[CALLBACK] body=", body); 
+
+  // Create the reference key for storing data
+  const ref = body.xref || body.crossReference || body.transactionUnique || "unknown";
+
+  // Log reference value for debugging
+  console.log("[CALLBACK] ref:", ref);
+
+  // Verify the signature
+  const valid = verifySignatureFromIncoming(body);
+  console.log("[CALLBACK] signature valid:", valid);
+
+  // Extract the response code and message
+  const responseCode = body.responseCode ?? body.statusCode ?? null;
+  const responseMessage = body.responseMessage ?? body.message ?? null;
+
+  // Log extracted values before inserting into DB
+  console.log("[CALLBACK] responseCode:", responseCode);
+  console.log("[CALLBACK] responseMessage:", responseMessage);
+
+  // Store the callback data in the database
+  await upsertCallback({
+    ref,
+    signature_valid: valid ? 1 : 0,
+    response_code: responseCode,
+    response_message: responseMessage,
+    body_json: JSON.stringify(body),  // Store the full callback body as JSON
+    received_at: new Date().toISOString()
+  });
+
+  // Respond with 200 OK to acknowledge receipt
   res.status(200).send("OK");
 });
 
-// === Inspect captured callbacks (for testing) ===
-app.get("/callbacks", (_req, res) => {
-  res.json({
-    count: callbacks.length,
-    items: callbacks.slice(0, 50)
-  });
+// Inspect captured callbacks (for testing)
+app.get("/callbacks", async (_req, res) => {
+  const rows = await listCallbacks(100);
+  res.json({ count: rows.length, items: rows });
 });
 
 // Health
@@ -149,7 +227,7 @@ app.listen(PORT, () => {
   console.log(`REST API listening on http://localhost:${PORT}`);
 });
 
-// Utility
+/* --------------------------------- Utils ---------------------------------- */
 function escapeHTML(s) {
   return String(s)
     .replaceAll("&", "&amp;")
